@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo
+  namespace: eks-demo-app
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eks-demo-app
+  namespace: eks-demo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      serviceAccountName: access-s3-sa
+      initContainers:
+        - image: amazon/aws-cli
+          name: demo-aws-cli-container
+          command: ['aws', 's3', 'ls', 's3://demo-oidc-eks/']
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+          env:
+            - name: AWS_REGION
+              value: ap-northeast-1
